@@ -1,0 +1,9 @@
+{
+  "name": "lan-doudizhu",
+  "version": "1.0.0",
+  "private": true,
+  "description": "简约深色局域网斗地主",
+  "type": "module",
+  "scripts": { "start": "node server.mjs" },
+  "engines": { "node": ">=18" }
+}

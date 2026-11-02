@@ -1,6 +1,8 @@
 const byId = id => document.getElementById(id);
 const SESSION_KEY = 'darcuo-session';
 const NAME_KEY = 'darcuo-name';
+const SOUND_KEY = 'darcuo-sound';
+const NOTIFICATION_KEY = 'darcuo-notifications';
 const selected = new Set();
 let state = null;
 let sessionToken = null;
@@ -12,6 +14,13 @@ let hintIndex = 0;
 let hintKey = '';
 let serverOffset = 0;
 let connected = false;
+let soundEnabled = storageGet(SOUND_KEY) !== 'false';
+let notificationsEnabled = storageGet(NOTIFICATION_KEY) === 'true';
+let audioContext = null;
+let titleTimer = null;
+let titleFlashing = false;
+const originalTitle = document.title;
+let turnNotification = null;
 
 function storageGet(key) {
   try { return localStorage.getItem(key); }
@@ -36,6 +45,103 @@ function element(tag, className = '', text = '') {
 function connectionStatus(online, text) {
   byId('connection-dot').classList.toggle('offline', !online);
   byId('connection-label').textContent = text;
+}
+function initializeAudio() {
+  if (!soundEnabled) { return; }
+  if (!audioContext) {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) { return; }
+    try { audioContext = new AudioContextClass(); }
+    catch (error) { console.warn('Audio output unavailable:', error.name); return; }
+  }
+  if (audioContext.state === 'suspended') { void audioContext.resume().catch(() => {}); }
+}
+function tone(frequency, start, duration, volume = 0.07, type = 'sine') {
+  if (!soundEnabled || !audioContext || audioContext.state !== 'running') { return; }
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const onset = audioContext.currentTime + start;
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(frequency, onset);
+  gain.gain.setValueAtTime(0.001, onset);
+  gain.gain.exponentialRampToValueAtTime(volume, onset + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.001, onset + duration);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(onset);
+  oscillator.stop(onset + duration + 0.015);
+}
+function playSound(name) {
+  if (!soundEnabled) { return; }
+  initializeAudio();
+  const cues = {
+    card: [[520, 0, 0.09]],
+    pass: [[310, 0, 0.12]],
+    bid: [[430, 0, 0.12], [610, 0.1, 0.16]],
+    bomb: [[330, 0, 0.12, 0.05, 'triangle'], [500, 0.09, 0.12, 0.05, 'triangle'], [760, 0.18, 0.22, 0.06, 'triangle']],
+    turn: [[660, 0, 0.14], [880, 0.15, 0.22]]
+  };
+  for (const [frequency, start, duration, volume, type] of cues[name] || []) {
+    tone(frequency, start, duration, volume, type);
+  }
+}
+function updatePreferenceButton(id, label, enabled) {
+  const button = byId(id);
+  button.classList.toggle('preference-on', enabled);
+  button.setAttribute('aria-pressed', String(enabled));
+  button.setAttribute('aria-label', `${label}${enabled ? '已开启' : '已关闭'}`);
+  button.title = `${label}${enabled ? '已开启' : '已关闭'}，点击${enabled ? '关闭' : '开启'}`;
+}
+function updatePreferenceButtons() {
+  updatePreferenceButton('sound-toggle', '音效', soundEnabled);
+  updatePreferenceButton('notification-toggle', '浏览器提示', notificationsEnabled);
+}
+function clearTitleFlash() {
+  clearInterval(titleTimer);
+  titleTimer = null;
+  titleFlashing = false;
+  document.title = originalTitle;
+  turnNotification?.close();
+  turnNotification = null;
+}
+function notifyTurn() {
+  if (!notificationsEnabled || !state || state.turn !== state.you || !['playing', 'bidding'].includes(state.phase)) { return; }
+  const message = state.phase === 'bidding' ? '轮到你叫分了' : '轮到你出牌了';
+  if (document.visibilityState === 'visible') {
+    toast(message);
+    return;
+  }
+  if ('Notification' in window && Notification.permission === 'granted' && window.isSecureContext) {
+    try {
+      turnNotification?.close();
+      turnNotification = new Notification(`DARCUO · ${message}`, { body: `房间 ${state.code}`, tag: `darcuo-${state.code}` });
+      turnNotification.onclick = () => { window.focus(); clearTitleFlash(); };
+    } catch (error) { console.warn('System notification unavailable:', error.name); }
+  }
+  if (titleTimer) { return; }
+  titleTimer = setInterval(() => {
+    titleFlashing = !titleFlashing;
+    document.title = titleFlashing ? `轮到你了 · ${originalTitle}` : originalTitle;
+  }, 900);
+}
+async function enableBrowserNotifications() {
+  if (!('Notification' in window)) {
+    toast('系统通知不可用；后台会用页签标题提示你。');
+    return;
+  }
+  if (!window.isSecureContext) {
+    toast('HTTP 局域网不支持系统通知；后台会用页签标题提示你。需要系统通知时请使用 HTTPS。');
+    return;
+  }
+  if (Notification.permission === 'default') {
+    try { await Notification.requestPermission(); }
+    catch { toast('浏览器没有开放通知权限；后台会用页签标题提示你。'); }
+  }
+  if (Notification.permission === 'denied') {
+    toast('通知权限已被浏览器关闭；后台会用页签标题提示你。可在浏览器网站设置中重新允许。');
+  } else if (Notification.permission === 'granted') {
+    toast('系统通知已允许，轮到你时会在后台提醒。');
+  }
 }
 async function api(action, payload = {}) {
   const controller = new AbortController();
@@ -106,9 +212,26 @@ function enterRoom(result) {
   };
 }
 function applyState(next) {
+  const previous = state;
   const oldRound = state?.round;
   const oldTurn = state?.turn;
   state = next;
+  updatePreferenceButtons();
+  if (previous?.code === state.code) {
+    const seenEvents = new Set(previous.log.map(entry => entry.id));
+    const freshEvents = state.log.filter(entry => !seenEvents.has(entry.id));
+    const latestMessage = freshEvents.reverse().find(entry => /出了|不出$|叫 [123] 分/.test(entry.message))?.message || '';
+    if (/出了(?:炸弹|王炸)/.test(latestMessage)) { playSound('bomb'); }
+    else if (/出了/.test(latestMessage)) { playSound('card'); }
+    else if (/不出$/.test(latestMessage)) { playSound('pass'); }
+    else if (/叫 [123] 分/.test(latestMessage)) { playSound('bid'); }
+  }
+  if (previous && previous.code === state.code && previous.you === state.you && state.turn === state.you &&
+    (previous.turn !== state.you || previous.phase !== state.phase || previous.round !== state.round) && ['playing', 'bidding'].includes(state.phase)) {
+    playSound('turn');
+    notifyTurn();
+  }
+  if (state.turn !== state.you || !['playing', 'bidding'].includes(state.phase)) { clearTitleFlash(); }
   serverOffset = next.serverTime - Date.now();
   const handIds = new Set(state.hand.map(card => card.id));
   for (const id of selected) { if (!handIds.has(id)) { selected.delete(id); } }
@@ -128,6 +251,7 @@ function applyState(next) {
   updateClock();
 }
 function exitRoom() {
+  clearTitleFlash();
   eventSource?.close(); eventSource = null;
   storageSet(SESSION_KEY, null);
   sessionToken = null; state = null; connected = false;
@@ -346,6 +470,33 @@ async function copyInvite() {
 }
 
 byId('nickname').value = storageGet(NAME_KEY) || '';
+updatePreferenceButtons();
+document.addEventListener('pointerdown', initializeAudio);
+document.addEventListener('keydown', initializeAudio);
+byId('sound-toggle').addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  storageSet(SOUND_KEY, String(soundEnabled));
+  updatePreferenceButtons();
+  if (soundEnabled) { initializeAudio(); playSound('turn'); }
+  else if (audioContext) { void audioContext.suspend().catch(() => {}); }
+  toast(`音效已${soundEnabled ? '开启' : '关闭'}。`);
+});
+byId('notification-toggle').addEventListener('click', () => {
+  notificationsEnabled = !notificationsEnabled;
+  storageSet(NOTIFICATION_KEY, String(notificationsEnabled));
+  updatePreferenceButtons();
+  if (notificationsEnabled) { void enableBrowserNotifications(); }
+  else { clearTitleFlash(); toast('浏览器提示已关闭。'); }
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const pending = titleTimer !== null;
+    clearTitleFlash();
+    if (pending) { notifyTurn(); }
+  } else if (notificationsEnabled && state && state.turn === state.you && ['playing', 'bidding'].includes(state.phase)) {
+    notifyTurn();
+  }
+});
 byId('create-tab').addEventListener('click', () => setEntryTab(false));
 byId('join-tab').addEventListener('click', () => setEntryTab(true));
 byId('create-button').addEventListener('click', () => { void withBusy(async () => enterRoom(await api('create', { name: readName() }))); });

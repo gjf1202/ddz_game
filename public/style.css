@@ -33,6 +33,8 @@ a { color: inherit; text-decoration: none; }
 .connection i.offline { background: #c99f62; }
 .icon-button { border: 1px solid var(--line); background: none; width: 27px; height: 27px; border-radius: 50%; color: var(--muted); font-size: 13px; padding: 0; }
 .icon-button:hover { background: var(--line); color: var(--text); }
+.preference-button { font-size: 13px; }
+.preference-button.preference-on { border-color: #4f617f; background: #293140; color: #adc4eb; }
 .lobby { max-width: 1240px; margin: 0 auto; padding: 70px 44px 65px; display: grid; grid-template-columns: 1fr 1.08fr; gap: 94px; align-items: center; min-height: calc(100vh - 148px); }
 .eyebrow { font: 10px/1.4 Consolas, monospace; color: var(--muted); letter-spacing: 2px; }
 .intro .eyebrow { display: flex; align-items: center; gap: 12px; }
@@ -230,7 +232,7 @@ input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #82a9f414; }
   .game { padding: 0 14px 20px; }
   .room-toolbar { height: 65px; } .room-title { gap: 10px; }
   .room-title .eyebrow { display: none; } .room-title strong { font-size: 19px; letter-spacing: 2px; }
-  .room-tools { gap: 13px; } .room-tools > span { display: none; }
+  .room-tools { gap: 8px; } .room-tools > span { display: none; }
   .room-title .text-button, .room-tools .text-button { font-size: 10px; }
   .board { min-height: 350px; }
   .board-top { left: 18px; right: 18px; top: 18px; }

@@ -53,9 +53,9 @@ async function initializeAudio() {
   if (!soundEnabled) { return false; }
   if (!audioContext || audioContext.state === 'closed') {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) { audioIssue = '当前浏览器不支持音效，请尝试 Chrome 或 Edge。'; return false; }
+    if (!AudioContextClass) { audioIssue = 'Audio unavailable. Try Chrome or Edge.'; return false; }
     try { audioContext = new AudioContextClass(); }
-    catch (error) { console.warn('Audio output unavailable:', error.name); audioIssue = '音频设备暂时不可用，请检查输出设备后重试。'; return false; }
+    catch (error) { console.warn('Audio output unavailable:', error.name); audioIssue = 'Check audio output.'; return false; }
   }
   let resumeTimer;
   try {
@@ -65,10 +65,10 @@ async function initializeAudio() {
         new Promise((resolve, reject) => { resumeTimer = setTimeout(() => reject(new Error('Audio resume timed out')), AUDIO_RESUME_TIMEOUT_MS); })
       ]);
     }
-    audioIssue = audioContext.state === 'running' ? '' : '声音尚未启用，请点击试听并允许网站播放声音。';
+    audioIssue = audioContext.state === 'running' ? '' : 'Click Test sound.';
   } catch (error) {
     console.warn('Audio resume unavailable:', error.name);
-    audioIssue = '浏览器尚未允许播放声音，请检查网站声音设置后再试听。';
+    audioIssue = 'Allow site audio, then retry.';
   } finally { clearTimeout(resumeTimer); }
   return soundEnabled && audioContext.state === 'running';
 }
@@ -107,12 +107,12 @@ function updatePreferenceButton(id, label, enabled) {
   const button = byId(id);
   button.classList.toggle('preference-on', enabled);
   button.setAttribute('aria-pressed', String(enabled));
-  button.setAttribute('aria-label', `${label}${enabled ? '已开启' : '已关闭'}`);
-  button.title = `${label}${enabled ? '已开启' : '已关闭'}，点击${enabled ? '关闭' : '开启'}`;
+  button.setAttribute('aria-label', `${label}: ${enabled ? 'on' : 'off'}`);
+  button.title = `${label}: ${enabled ? 'on' : 'off'}. Click to toggle.`;
 }
 function updatePreferenceButtons() {
-  updatePreferenceButton('sound-toggle', '音效', soundEnabled);
-  updatePreferenceButton('notification-toggle', '浏览器提示', notificationsEnabled);
+  updatePreferenceButton('sound-toggle', 'Sound', soundEnabled);
+  updatePreferenceButton('notification-toggle', 'Alerts', notificationsEnabled);
 }
 function clearTitleFlash() {
   clearInterval(titleTimer);
@@ -124,7 +124,7 @@ function clearTitleFlash() {
 }
 function notifyTurn() {
   if (!notificationsEnabled || !state || state.turn !== state.you || !['playing', 'bidding'].includes(state.phase)) { return; }
-  const message = state.phase === 'bidding' ? '轮到你叫分了' : '轮到你出牌了';
+  const message = state.phase === 'bidding' ? 'Your bid.' : 'Your turn.';
   if (document.visibilityState === 'visible') {
     toast(message);
     return;
@@ -132,33 +132,33 @@ function notifyTurn() {
   if ('Notification' in window && Notification.permission === 'granted' && window.isSecureContext) {
     try {
       turnNotification?.close();
-      turnNotification = new Notification(`DARCUO · ${message}`, { body: `房间 ${state.code}`, tag: `darcuo-${state.code}` });
+      turnNotification = new Notification(`DARCUO · ${message}`, { body: `Room ${state.code}`, tag: `darcuo-${state.code}` });
       turnNotification.onclick = () => { window.focus(); clearTitleFlash(); };
     } catch (error) { console.warn('System notification unavailable:', error.name); }
   }
   if (titleTimer) { return; }
   titleTimer = setInterval(() => {
     titleFlashing = !titleFlashing;
-    document.title = titleFlashing ? `轮到你了 · ${originalTitle}` : originalTitle;
+    document.title = titleFlashing ? `Your turn · ${originalTitle}` : originalTitle;
   }, 900);
 }
 async function enableBrowserNotifications() {
   if (!('Notification' in window)) {
-    toast('系统通知不可用；后台会用页签标题提示你。');
+    toast('Tab alerts only.');
     return;
   }
   if (!window.isSecureContext) {
-    toast('HTTP 局域网不支持系统通知；后台会用页签标题提示你。需要系统通知时请使用 HTTPS。');
+    toast('Tab alerts only.');
     return;
   }
   if (Notification.permission === 'default') {
     try { await Notification.requestPermission(); }
-    catch { toast('浏览器没有开放通知权限；后台会用页签标题提示你。'); }
+    catch { toast('Tab alerts only.'); }
   }
   if (Notification.permission === 'denied') {
-    toast('通知权限已被浏览器关闭；后台会用页签标题提示你。可在浏览器网站设置中重新允许。');
+    toast('Notifications blocked. Tab alerts on.');
   } else if (Notification.permission === 'granted') {
-    toast('系统通知已允许，轮到你时会在后台提醒。');
+    toast('Alerts on.');
   }
 }
 async function api(action, payload = {}) {
@@ -170,10 +170,10 @@ async function api(action, payload = {}) {
       body: JSON.stringify(payload), signal: controller.signal
     });
     const result = await response.json();
-    if (!response.ok) { throw Object.assign(new Error(result.error || '操作失败，请重试。'), { status: response.status }); }
+    if (!response.ok) { throw Object.assign(new Error(result.error || 'Try again.'), { status: response.status }); }
     return result;
   } catch (error) {
-    if (error instanceof TypeError || error.name === 'AbortError') { throw new Error('暂时连接不到服务，请检查网络后重试。'); }
+    if (error instanceof TypeError || error.name === 'AbortError') { throw new Error('Connection lost. Retry.'); }
     throw error;
   } finally { clearTimeout(timer); }
 }
@@ -193,7 +193,7 @@ function toggleEntryButtons(disabled) {
 }
 function readName() {
   const name = byId('nickname').value.trim();
-  if (!name || [...name].length > 12) { byId('nickname').focus(); throw new Error('先输入一个 1–12 个字符的昵称吧。'); }
+  if (!name || [...name].length > 12) { byId('nickname').focus(); throw new Error('Name: 1–12 characters.'); }
   storageSet(NAME_KEY, name);
   return name;
 }
@@ -210,22 +210,22 @@ function enterRoom(result) {
   sessionToken = result.token || sessionToken;
   storageSet(SESSION_KEY, sessionToken);
   applyState(result.state);
-  connectionStatus(false, '正在连接');
+  connectionStatus(false, 'Connecting');
   eventSource = new EventSource(`/events?token=${encodeURIComponent(sessionToken)}`);
-  eventSource.onopen = () => { connected = true; connectionStatus(true, '已连接牌桌'); renderActions(); };
+  eventSource.onopen = () => { connected = true; connectionStatus(true, 'Connected'); renderActions(); };
   eventSource.onmessage = event => {
     const data = JSON.parse(event.data);
     connected = true;
-    connectionStatus(true, '已连接牌桌');
+    connectionStatus(true, 'Connected');
     applyState(data);
   };
   eventSource.onerror = () => {
     connected = false;
-    connectionStatus(false, '断线重连中');
+    connectionStatus(false, 'Reconnecting');
     renderActions();
     // A missing server-side session cannot be recovered by SSE retries alone.
     void api('resume').catch(error => {
-      if (error.status === 401) { exitRoom(); toast('房间已失效，请重新创建或加入。'); }
+      if (error.status === 401) { exitRoom(); toast('Session expired. Rejoin.'); }
     });
   };
 }
@@ -238,11 +238,8 @@ function applyState(next) {
   if (previous?.code === state.code) {
     const seenEvents = new Set(previous.log.map(entry => entry.id));
     const freshEvents = state.log.filter(entry => !seenEvents.has(entry.id));
-    const latestMessage = freshEvents.reverse().find(entry => /出了|不出$|叫 [123] 分/.test(entry.message))?.message || '';
-    if (/出了(?:炸弹|王炸)/.test(latestMessage)) { void playSound('bomb'); }
-    else if (/出了/.test(latestMessage)) { void playSound('card'); }
-    else if (/不出$/.test(latestMessage)) { void playSound('pass'); }
-    else if (/叫 [123] 分/.test(latestMessage)) { void playSound('bid'); }
+    const latestSound = freshEvents.reverse().find(entry => entry.sound)?.sound;
+    if (latestSound) { void playSound(latestSound); }
   }
   if (previous && previous.code === state.code && previous.you === state.you && state.turn === state.you &&
     (previous.turn !== state.you || previous.phase !== state.phase || previous.round !== state.round) && ['playing', 'bidding'].includes(state.phase)) {
@@ -259,7 +256,7 @@ function applyState(next) {
   byId('room-number').textContent = state.code;
   byId('practice-badge').hidden = !state.practice;
   byId('copy-room').hidden = state.practice;
-  byId('round-label').textContent = state.round ? `第 ${state.round} 局` : '等待开局';
+  byId('round-label').textContent = state.round ? `Round ${state.round}` : 'Waiting';
   byId('multiplier').textContent = `×${state.multiplier}`;
   renderBoard();
   renderPlayers();
@@ -277,7 +274,7 @@ function exitRoom() {
   selected.clear(); hintMoves = []; hintKey = '';
   byId('game').hidden = true;
   byId('lobby').hidden = false;
-  connectionStatus(true, '局域网联机');
+  connectionStatus(true, 'LAN');
   history.replaceState(null, '', '/');
 }
 function cardNode(card, mini = false, selectable = false) {
@@ -297,14 +294,14 @@ function appendCards(container, cards, mini = true) {
   container.replaceChildren(...cards.map(card => cardNode(card, mini)));
 }
 function playerStatus(player) {
-  if (!player.online) { return '离线 · 保留座位'; }
-  if (state.phase === 'waiting' || state.phase === 'finished') { return player.ready ? '已准备' : '未准备'; }
-  if (state.phase === 'bidding') { return player.bid === null ? '等待叫分' : player.bid ? `叫 ${player.bid} 分` : '不叫'; }
-  return state.turn === player.seat ? '正在出牌' : '思考中';
+  if (!player.online) { return 'Offline'; }
+  if (state.phase === 'waiting' || state.phase === 'finished') { return player.ready ? 'Ready' : 'Not ready'; }
+  if (state.phase === 'bidding') { return player.bid === null ? 'Waiting' : player.bid ? `Bid ${player.bid}` : 'Pass'; }
+  return state.turn === player.seat ? 'Playing' : 'Waiting';
 }
 function roleNode(seat) {
   const landlord = state.landlord === seat;
-  return element('span', `role${landlord ? ' landlord' : ''}`, state.landlord === null ? (state.host === seat ? '房主' : '玩家') : landlord ? '地主' : '农民');
+  return element('span', `role${landlord ? ' landlord' : ''}`, state.landlord === null ? (state.host === seat ? 'Host' : 'Player') : landlord ? 'Solo' : 'Team');
 }
 function renderOpponent(container, seat) {
   container.replaceChildren();
@@ -313,7 +310,7 @@ function renderOpponent(container, seat) {
   if (!player) {
     const heading = element('div', 'player-heading');
     const info = element('div');
-    info.append(element('div', 'player-name', '空座位'), element('div', 'player-state', '等待朋友加入'));
+    info.append(element('div', 'player-name', 'Open seat'), element('div', 'player-state', 'Waiting'));
     heading.append(element('div', 'player-avatar waiting-seat', '+'), info);
     container.append(heading);
     return;
@@ -323,12 +320,12 @@ function renderOpponent(container, seat) {
   info.append(element('div', 'player-name', player.name), element('div', `player-state${player.ready ? ' ready' : ''}`, playerStatus(player)));
   heading.append(element('div', 'player-avatar', player.bot ? '♙' : [...player.name][0]), info);
   const meta = element('div', 'player-meta');
-  meta.append(roleNode(seat), element('span', '', `${player.score > 0 ? '+' : ''}${player.score} 分`));
+  meta.append(roleNode(seat), element('span', '', `${player.score > 0 ? '+' : ''}${player.score} pts`));
   container.append(heading, meta);
   if (['playing', 'bidding'].includes(state.phase)) {
     const remaining = element('div', `remaining${player.count <= 2 ? ' warning' : ''}`);
     remaining.append(element('span', 'card-back'), element('span', '', String(player.count)));
-    remaining.setAttribute('aria-label', `剩余 ${player.count} 张牌`);
+    remaining.setAttribute('aria-label', `${player.count} left`);
     container.append(remaining);
   }
   if (state.phase === 'finished' && player.cards.length) {
@@ -342,8 +339,8 @@ function renderPlayers() {
   renderOpponent(byId('opponent-right'), (state.you + 1) % 3);
   const player = state.players[state.you];
   byId('self-info').replaceChildren(
-    element('span', 'self-name', player.name), element('span', 'you-tag', '你'), roleNode(state.you),
-    element('span', 'score-text', `${player.score > 0 ? '+' : ''}${player.score} 积分`)
+    element('span', 'self-name', player.name), element('span', 'you-tag', 'You'), roleNode(state.you),
+    element('span', 'score-text', `${player.score > 0 ? '+' : ''}${player.score} pts`)
   );
 }
 function renderPlayed(container, play) {
@@ -364,29 +361,29 @@ function renderBoard() {
   center.replaceChildren();
   if (state.phase === 'waiting') {
     const count = state.players.filter(Boolean).length;
-    center.append(element('h2', '', count < 3 ? '等朋友入座' : '人齐了，准备开局'), element('p', '', count < 3 ? `已入座 ${count} / 3 · 分享房间号邀请朋友` : '所有人准备后，由房主开始游戏'));
+    center.append(element('h2', '', count < 3 ? 'Waiting' : 'Ready up'), element('p', '', count < 3 ? `${count} / 3 joined` : 'Host starts when all ready.'));
   } else if (state.phase === 'bidding') {
-    center.append(element('h2', '', '叫地主'), element('p', '', state.bid ? `当前最高 ${state.bid} 分` : '好牌在手，就叫一分'));
+    center.append(element('h2', '', 'Bidding'), element('p', '', state.bid ? `Top bid: ${state.bid}` : 'Choose a bid.'));
   } else if (state.phase === 'finished') {
     const won = state.result.changes[state.you] > 0;
     const delta = state.result.changes[state.you];
-    center.append(element('h2', '', won ? '这一局，赢得漂亮。' : '好牌，留给下一局。'),
-      element('p', 'result-line', `${state.result.landlordWon ? '地主' : '农民'}获胜`),
+    center.append(element('h2', '', won ? 'You win.' : 'Next time.'),
+      element('p', 'result-line', `${state.result.landlordWon ? 'Solo' : 'Team'} wins`),
       element('div', `result-score${delta < 0 ? ' negative' : ''}`, `${delta > 0 ? '+' : ''}${delta}`));
-    if (state.result.spring) { center.append(element('small', '', '春天 · 倍数 ×2')); }
+    if (state.result.spring) { center.append(element('small', '', 'Sweep ×2')); }
   }
 }
 function renderHand() {
   const hand = byId('hand');
   if (!state.hand.length) {
     const empty = element('div', 'hand-empty');
-    empty.append(element('span', '', '♠'), element('div', '', state.phase === 'finished' ? '这一手，打完了。' : '准备就绪，等待一手好牌。'));
+    empty.append(element('span', '', '♠'), element('div', '', state.phase === 'finished' ? 'All done.' : 'Ready when you are.'));
     hand.replaceChildren(empty);
   } else { hand.replaceChildren(...state.hand.map(card => cardNode(card, false, true))); }
   updateSelection();
 }
 function updateSelection() {
-  byId('selection-label').textContent = state.hand.length ? `手牌 ${state.hand.length} 张${selected.size ? ` · 已选 ${selected.size} 张` : ''}` : state.phase === 'finished' ? '对局结束' : '等待发牌';
+  byId('selection-label').textContent = state.hand.length ? `${state.hand.length} cards${selected.size ? ` · ${selected.size} selected` : ''}` : state.phase === 'finished' ? 'Finished' : 'Waiting';
   for (const node of byId('hand').querySelectorAll('button')) {
     node.classList.toggle('selected', selected.has(node.dataset.id));
     node.setAttribute('aria-pressed', String(selected.has(node.dataset.id)));
@@ -401,14 +398,14 @@ function renderCounter() {
   const grid = byId('counter-grid');
   grid.replaceChildren();
   if (!Array.isArray(state.playedCards)) {
-    byId('counter-total').textContent = '等待服务更新';
-    byId('counter-note').textContent = '请在本局结束后重启主机服务，以启用记牌器。';
+    byId('counter-total').textContent = 'Update needed';
+    byId('counter-note').textContent = 'Restart host after this round.';
     return;
   }
   const ranks = Array.from({ length: 15 }, (value, index) => 17 - index);
   const remaining = new Map(ranks.map(rank => [rank, rank >= 16 ? 1 : 4]));
   for (const card of [...state.hand, ...state.playedCards]) { remaining.set(card.rank, remaining.get(card.rank) - 1); }
-  const labels = { 17: '大王', 16: '小王', 15: '2', 14: 'A', 13: 'K', 12: 'Q', 11: 'J' };
+  const labels = { 17: 'BJ', 16: 'SJ', 15: '2', 14: 'A', 13: 'K', 12: 'Q', 11: 'J' };
   let total = 0;
   for (const rank of ranks) {
     const count = remaining.get(rank);
@@ -416,12 +413,12 @@ function renderCounter() {
     const item = element('div', `counter-item${count === 0 ? ' empty' : ''}`);
     item.dataset.rank = rank;
     item.setAttribute('role', 'listitem');
-    item.setAttribute('aria-label', `${labels[rank] || rank} 剩余 ${count} 张`);
+    item.setAttribute('aria-label', `${labels[rank] || rank}: ${count} left`);
     item.append(element('span', 'counter-rank', labels[rank] || String(rank)), element('span', 'counter-count', String(count)));
     grid.append(item);
   }
-  byId('counter-total').textContent = `其他两家合计 ${total} 张`;
-  byId('counter-note').textContent = '已扣除你的手牌和全桌已出牌；只统计总数，不区分两家的持牌分布。';
+  byId('counter-total').textContent = `${total} remaining`;
+  byId('counter-note').textContent = 'Other players combined.';
 }
 function actionButton(text, className, action, disabled = false, id = '') {
   const button = element('button', `button ${className}`, text);
@@ -441,30 +438,30 @@ function renderActions() {
   if (!state) { return; }
   const player = state.players[state.you];
   if (['waiting', 'finished'].includes(state.phase)) {
-    bar.append(actionButton(player.ready ? '取消准备' : state.phase === 'finished' ? '准备下一局' : '准备', player.ready ? 'secondary' : 'primary', () => perform('ready', { ready: !player.ready })));
+    bar.append(actionButton(player.ready ? 'Unready' : 'Ready', player.ready ? 'secondary' : 'primary', () => perform('ready', { ready: !player.ready })));
     if (state.host === state.you) {
       const allReady = state.players.every(entry => entry?.ready && entry.online);
-      bar.append(actionButton('开始游戏', 'primary', () => perform('start'), !allReady));
-    } else { bar.append(element('span', 'action-note', '准备后，等待房主开始')); }
+      bar.append(actionButton('Start', 'primary', () => perform('start'), !allReady));
+    } else { bar.append(element('span', 'action-note', 'Wait for host.')); }
     return;
   }
   if (state.turn !== state.you) {
-    bar.append(element('span', 'action-note', `等待 ${state.players[state.turn].name} ${state.phase === 'bidding' ? '叫分' : '出牌'}…`));
+    bar.append(element('span', 'action-note', `Waiting: ${state.players[state.turn].name}`));
     return;
   }
   if (state.phase === 'bidding') {
-    bar.append(actionButton('不叫', 'secondary', () => perform('bid', { value: 0 })));
-    for (const value of [1, 2, 3]) { bar.append(actionButton(`${value} 分`, value === 3 ? 'primary' : 'secondary', () => perform('bid', { value }), value <= state.bid)); }
+    bar.append(actionButton('Pass', 'secondary', () => perform('bid', { value: 0 })));
+    for (const value of [1, 2, 3]) { bar.append(actionButton(`${value}`, value === 3 ? 'primary' : 'secondary', () => perform('bid', { value }), value <= state.bid)); }
     return;
   }
-  bar.append(actionButton('不出', 'secondary', () => perform('pass'), !state.lastPlay));
-  bar.append(actionButton('提示', 'hint', showHint));
-  bar.append(actionButton('重选', 'secondary', async () => { selected.clear(); updateSelection(); }));
-  bar.append(actionButton('出牌', 'primary', async () => {
+  bar.append(actionButton('Pass', 'secondary', () => perform('pass'), !state.lastPlay));
+  bar.append(actionButton('Hint', 'hint', showHint));
+  bar.append(actionButton('Clear', 'secondary', async () => { selected.clear(); updateSelection(); }));
+  bar.append(actionButton('Play', 'primary', async () => {
     await perform('play', { ids: [...selected] });
     selected.clear(); updateSelection();
   }, selected.size === 0, 'play-button'));
-  byId('hand-help').textContent = state.canBeat ? '点击牌面选择，再点击出牌' : '暂时没有能压过的牌，可以选择不出';
+  byId('hand-help').textContent = state.canBeat ? 'Select cards, then Play.' : 'No match. Pass.';
 }
 async function showHint() {
   const key = `${state.round}/${state.turn}/${state.hand.map(card => card.id).join(',')}/${state.lastPlay?.cards.map(card => card.id).join(',') || ''}`;
@@ -473,7 +470,7 @@ async function showHint() {
     hintKey = key; hintIndex = 0;
   }
   selected.clear();
-  if (!hintMoves.length) { updateSelection(); toast('没有能压过的牌，选择「不出」吧。'); return; }
+  if (!hintMoves.length) { updateSelection(); toast('No match. Pass.'); return; }
   for (const id of hintMoves[hintIndex % hintMoves.length]) { selected.add(id); }
   hintIndex++;
   updateSelection();
@@ -489,31 +486,31 @@ function updateClock() {
   const active = ['playing', 'bidding'].includes(state.phase);
   if (!active) {
     clock.textContent = '';
-    byId('turn-status').textContent = state.phase === 'finished' ? '准备好，再来一局。' : '局域网牌桌 · 仅娱乐积分';
+    byId('turn-status').textContent = state.phase === 'finished' ? 'Ready for next.' : 'LAN · Points only';
     return;
   }
   const seconds = Math.max(0, Math.ceil((state.deadline - Date.now() - serverOffset) / 1000));
   clock.textContent = `${String(seconds).padStart(2, '0')}s`;
   clock.classList.toggle('urgent', seconds <= 8);
-  byId('turn-status').textContent = `${state.turn === state.you ? '轮到你' : state.players[state.turn].name}${state.phase === 'bidding' ? '叫分' : '出牌'}${state.phase === 'playing' && !state.lastPlay ? ' · 自由领出' : ''}`;
+  byId('turn-status').textContent = `${state.turn === state.you ? 'Your turn' : state.players[state.turn].name}${state.phase === 'bidding' ? ' · Bid' : ''}${state.phase === 'playing' && !state.lastPlay ? ' · Lead' : ''}`;
 }
 async function copyInvite() {
   const addressInfo = await fetch('/api/info').then(response => response.json());
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const base = local ? addressInfo.addresses[0] || location.origin : location.origin;
   const invite = `${base}/?room=${state.code}`;
-  const text = `来玩斗地主：${invite}\n房间号：${state.code}\n请连接同一局域网`;
+  const text = `DARCUO: ${invite}\nRoom: ${state.code}\nSame LAN required.`;
   try {
     if (!navigator.clipboard?.writeText) { throw new Error('Clipboard unavailable'); }
     await navigator.clipboard.writeText(text);
-    toast('邀请已复制，发给同一局域网的朋友吧。');
+    toast('Invite copied.');
   } catch {
     const input = element('textarea', 'sr-only', text);
     document.body.append(input); input.select();
     const copied = document.execCommand('copy');
     input.remove();
-    if (copied) { toast('邀请已复制，发给朋友吧。'); }
-    else { toast(`请分享地址 ${base} 和房间号 ${state.code}`); }
+    if (copied) { toast('Invite copied.'); }
+    else { toast(`${base} · ${state.code}`); }
   }
 }
 
@@ -527,8 +524,8 @@ byId('sound-toggle').addEventListener('click', () => {
   updatePreferenceButtons();
   if (soundEnabled) { void playSound('turn'); }
   else if (audioContext) { void audioContext.suspend().catch(() => {}); }
-  byId('sound-status').textContent = soundEnabled ? '点击试听检查声音' : '音效已关闭';
-  toast(`音效已${soundEnabled ? '开启' : '关闭'}。`);
+  byId('sound-status').textContent = soundEnabled ? 'Click Test sound.' : 'Sound off.';
+  toast(`Sound ${soundEnabled ? 'on' : 'off'}.`);
 });
 byId('sound-test').addEventListener('click', () => {
   void (async () => {
@@ -537,13 +534,13 @@ byId('sound-test').addEventListener('click', () => {
     soundEnabled = true;
     storageSet(SOUND_KEY, 'true');
     updatePreferenceButtons();
-    byId('sound-status').textContent = '正在启用声音…';
+    byId('sound-status').textContent = 'Starting audio…';
     try {
       const played = await playSound('test');
-      byId('sound-status').textContent = played ? '试听已播放；听不到请检查标签页静音和系统音量。' : audioIssue;
+      byId('sound-status').textContent = played ? 'Played. Check volume if silent.' : audioIssue;
     } catch (error) {
       console.warn('Sound test failed:', error.name);
-      byId('sound-status').textContent = '试听失败，请检查网站声音权限和音频设备。';
+      byId('sound-status').textContent = 'Audio failed. Check site settings.';
     } finally { button.disabled = false; }
   })();
 });
@@ -554,7 +551,7 @@ byId('notification-toggle').addEventListener('click', () => {
   storageSet(NOTIFICATION_KEY, String(notificationsEnabled));
   updatePreferenceButtons();
   if (notificationsEnabled) { void enableBrowserNotifications(); }
-  else { clearTitleFlash(); toast('浏览器提示已关闭。'); }
+  else { clearTitleFlash(); toast('Alerts off.'); }
 });
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
@@ -573,7 +570,7 @@ byId('join-button').addEventListener('click', () => {
   void withBusy(async () => {
     const name = readName();
     const code = byId('room-code').value.trim();
-    if (!/^\d{6}$/.test(code)) { byId('room-code').focus(); throw new Error('请输入六位数字房间号。'); }
+    if (!/^\d{6}$/.test(code)) { byId('room-code').focus(); throw new Error('Enter a 6-digit code.'); }
     enterRoom(await api('join', { name, code }));
   });
 });

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1e1f22">
-  <meta name="description" content="简约、安静的局域网斗地主。无需注册，三人开局。">
+  <meta name="description" content="A quiet table. Three players. One LAN.">
   <title>DARCUO</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232b2d30'/%3E%3Ctext x='32' y='47' text-anchor='middle' font-size='46' fill='%237da6ff'%3E♠%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/style.css">
@@ -12,44 +12,44 @@
 </head>
 <body>
   <header class="app-header">
-    <a class="brand" href="/" aria-label="斗地主首页"><span class="brand-mark">♠</span><strong>斗地主</strong><span class="brand-divider"></span><span class="brand-en">DARCUO</span></a>
-    <div class="header-right"><span class="connection"><i id="connection-dot"></i><span id="connection-label">局域网联机</span></span><button class="icon-button" id="rules-button" aria-label="查看玩法规则" title="玩法规则">?</button></div>
+    <a class="brand" href="/" aria-label="Home"><span class="brand-mark">♠</span><strong>DARCUO</strong><span class="brand-divider"></span><span class="brand-en">CLUB</span></a>
+    <div class="header-right"><span class="connection"><i id="connection-dot"></i><span id="connection-label">LAN</span></span><button class="icon-button" id="rules-button" aria-label="Rules" title="Rules">?</button></div>
   </header>
 
   <main id="lobby" class="lobby">
     <section class="intro">
       <div class="eyebrow"><span class="tiny-line"></span>LESS NOISE. MORE PLAY.</div>
-      <h1>三个人，<br>刚好一桌。</h1>
-      <p class="intro-copy">熟悉的斗地主，安静一点的界面。<br>连接同一局域网，和朋友即刻开局。</p>
-      <div class="features"><span><i class="feature-dot"></i>无需注册</span><span><i class="feature-dot"></i>实时联机</span><span><i class="feature-dot"></i>三人一桌</span></div>
+      <h1>Three players.<br>One table.</h1>
+      <p class="intro-copy">A quiet game with friends.<br>Join the same LAN to start.</p>
+      <div class="features"><span><i class="feature-dot"></i>No sign-up</span><span><i class="feature-dot"></i>Live sync</span><span><i class="feature-dot"></i>3 players</span></div>
 
       <div class="entry-panel">
-        <label class="field-label" for="nickname">怎么称呼你 <span>YOUR NAME</span></label>
-        <input id="nickname" maxlength="12" autocomplete="nickname" placeholder="输入昵称" aria-describedby="name-help">
-        <span id="name-help" class="sr-only">昵称长度为一到十二个字符</span>
-        <div class="entry-tabs" role="tablist" aria-label="房间操作">
-          <button id="create-tab" class="entry-tab active" role="tab" aria-selected="true" aria-controls="create-panel">创建房间</button>
-          <button id="join-tab" class="entry-tab" role="tab" aria-selected="false" aria-controls="join-panel">加入房间</button>
+        <label class="field-label" for="nickname">Name <span>YOUR NAME</span></label>
+        <input id="nickname" maxlength="12" autocomplete="nickname" placeholder="Your name" aria-describedby="name-help">
+        <span id="name-help" class="sr-only">1–12 characters</span>
+        <div class="entry-tabs" role="tablist" aria-label="Room actions">
+          <button id="create-tab" class="entry-tab active" role="tab" aria-selected="true" aria-controls="create-panel">Create room</button>
+          <button id="join-tab" class="entry-tab" role="tab" aria-selected="false" aria-controls="join-panel">Join room</button>
         </div>
         <div id="create-panel" role="tabpanel" aria-labelledby="create-tab">
-          <p class="field-note">开一张新牌桌，邀请两位朋友。</p>
-          <button id="create-button" class="button primary full">创建房间 <span aria-hidden="true">↗</span></button>
+          <p class="field-note">Invite two friends.</p>
+          <button id="create-button" class="button primary full">Create room <span aria-hidden="true">↗</span></button>
         </div>
         <div id="join-panel" role="tabpanel" aria-labelledby="join-tab" hidden>
-          <label class="sr-only" for="room-code">六位房间号</label>
-          <input id="room-code" class="code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="输入 6 位房间号" autocomplete="off">
-          <button id="join-button" class="button primary full">加入牌桌 <span aria-hidden="true">↗</span></button>
+          <label class="sr-only" for="room-code">6-digit room code</label>
+          <input id="room-code" class="code-input" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="6-digit code" autocomplete="off">
+          <button id="join-button" class="button primary full">Join <span aria-hidden="true">↗</span></button>
         </div>
-        <div class="practice-row"><span>朋友还没到？</span><button id="practice-button" class="text-button">和机器人练一局 <span aria-hidden="true">→</span></button></div>
+        <div class="practice-row"><span>Waiting?</span><button id="practice-button" class="text-button">Practice <span aria-hidden="true">→</span></button></div>
       </div>
     </section>
 
-    <section class="lobby-visual" aria-label="简约深色牌桌预览">
+    <section class="lobby-visual" aria-label="Table preview">
       <div class="preview-topline"><span><i class="status-light"></i>THE TABLE</span><span>01 / 03</span></div>
       <div class="preview-table">
-        <div class="preview-seat seat-north"><div class="avatar">北</div><span>等待朋友</span><span class="seat-line"></span></div>
-        <div class="preview-seat seat-east"><div class="avatar">南</div><span>等待朋友</span><span class="seat-line"></span></div>
-        <div class="preview-center"><div class="preview-suits"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div><span>好牌，慢慢打。</span><small>YOUR NEXT HAND AWAITS</small></div>
+        <div class="preview-seat seat-north"><div class="avatar">N</div><span>Open seat</span><span class="seat-line"></span></div>
+        <div class="preview-seat seat-east"><div class="avatar">S</div><span>Open seat</span><span class="seat-line"></span></div>
+        <div class="preview-center"><div class="preview-suits"><span>♠</span><span>♥</span><span>♣</span><span>♦</span></div><span>Take your time.</span><small>YOUR NEXT HAND AWAITS</small></div>
         <div class="preview-hand" aria-hidden="true">
           <div class="preview-card"><b>A</b><span>♠</span></div>
           <div class="preview-card"><b>K</b><span>♣</span></div>
@@ -58,19 +58,19 @@
           <div class="preview-card red"><b>10</b><span>♦</span></div>
         </div>
       </div>
-      <div class="preview-bottomline"><span>♠ &nbsp; DARCUO CLUB</span><span>只专注这一手</span></div>
-      <div class="network-note"><span class="network-icon">⌁</span><div><strong>同一网络，就能同桌。</strong><p>一台电脑启动服务，手机、平板、电脑都能加入。</p></div></div>
+      <div class="preview-bottomline"><span>♠ &nbsp; DARCUO CLUB</span><span>ONE HAND AT A TIME</span></div>
+      <div class="network-note"><span class="network-icon">⌁</span><div><strong>Same LAN. Same table.</strong><p>One host. Any browser.</p></div></div>
     </section>
   </main>
 
   <main id="game" class="game" hidden>
     <div class="room-toolbar">
-      <div class="room-title"><span class="eyebrow">ROOM</span><strong id="room-number"></strong><span id="practice-badge" class="muted-badge" hidden>练习</span><button id="copy-room" class="text-button small">复制邀请</button></div>
-      <div class="room-tools"><span id="round-label">等待开局</span><button id="sound-toggle" class="icon-button preference-button" type="button" aria-label="音效已开启" aria-pressed="true" title="音效已开启，点击关闭">♫</button><button id="notification-toggle" class="icon-button preference-button" type="button" aria-label="浏览器提示已关闭" aria-pressed="false" title="浏览器提示已关闭，点击开启">铃</button><button id="leave-button" class="text-button danger-text">离开房间</button></div>
+      <div class="room-title"><span class="eyebrow">ROOM</span><strong id="room-number"></strong><span id="practice-badge" class="muted-badge" hidden>Practice</span><button id="copy-room" class="text-button small">Invite</button></div>
+      <div class="room-tools"><span id="round-label">Waiting</span><button id="sound-toggle" class="icon-button preference-button" type="button" aria-label="Sound on" aria-pressed="true" title="Sound: on. Click to toggle.">♫</button><button id="notification-toggle" class="icon-button preference-button" type="button" aria-label="Alerts off" aria-pressed="false" title="Alerts: off. Click to toggle.">!</button><button id="leave-button" class="text-button danger-text">Leave</button></div>
     </div>
 
-    <section class="board" aria-label="牌桌">
-      <div class="board-top"><div class="bottom-area"><span class="label-mono">底牌</span><div id="bottom-cards" class="mini-cards"></div></div><div class="score-pill">本局倍数 <strong id="multiplier">×1</strong></div></div>
+    <section class="board" aria-label="Table">
+      <div class="board-top"><div class="bottom-area"><span class="label-mono">Reserve</span><div id="bottom-cards" class="mini-cards"></div></div><div class="score-pill">Multiplier <strong id="multiplier">×1</strong></div></div>
       <div id="opponent-left" class="opponent opponent-left"></div>
       <div id="opponent-right" class="opponent opponent-right"></div>
       <div class="board-watermark" aria-hidden="true">♠<span>DARCUO</span></div>
@@ -81,42 +81,42 @@
       <div class="board-bottom"><span id="turn-status"></span><span id="countdown" class="countdown"></span></div>
     </section>
 
-    <section class="hand-section" aria-label="我的手牌">
-      <div class="hand-toolbar"><div id="self-info" class="self-info"></div><span id="selection-label" class="selection-label">等待发牌</span></div>
+    <section class="hand-section" aria-label="Your cards">
+      <div class="hand-toolbar"><div id="self-info" class="self-info"></div><span id="selection-label" class="selection-label">Waiting</span></div>
       <div id="action-bar" class="action-bar"></div>
       <div id="hand" class="hand"></div>
-      <div class="hand-footer"><span id="hand-help">点击牌面选择，再点击出牌</span><div class="hand-feedback"><button id="sound-test" class="text-button" type="button">试听音效</button><span id="sound-status" role="status">点击试听检查声音</span></div><span>ENTER 出牌 <span class="footer-divider">/</span> ESC 取消选择</span></div>
+      <div class="hand-footer"><span id="hand-help">Select cards, then Play.</span><div class="hand-feedback"><button id="sound-test" class="text-button" type="button">Test sound</button><span id="sound-status" role="status">Click Test sound.</span></div><span>ENTER Play <span class="footer-divider">/</span> ESC Clear</span></div>
     </section>
     <details id="card-counter" class="card-counter" hidden open>
-      <summary>记牌器 <span id="counter-total"></span></summary>
-      <div id="counter-grid" class="counter-grid" role="list" aria-label="其他两家剩余牌数"></div>
-      <p id="counter-note">显示其他两家尚未打出的牌数，已扣除你的手牌和全桌已出牌。</p>
+      <summary>Counter <span id="counter-total"></span></summary>
+      <div id="counter-grid" class="counter-grid" role="list" aria-label="Other players remaining"></div>
+      <p id="counter-note">Other players combined.</p>
     </details>
-    <details class="activity"><summary>对局记录 <span>GAME LOG</span></summary><ol id="game-log"></ol></details>
+    <details class="activity"><summary>Activity <span>GAME LOG</span></summary><ol id="game-log"></ol></details>
   </main>
 
-  <footer class="app-footer"><span>为朋友间的一局好牌而做。</span><span>DARK THEME <i></i> LAN ONLY</span></footer>
+  <footer class="app-footer"><span>A quiet table with friends.</span><span>DARK THEME <i></i> LAN ONLY</span></footer>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
   <dialog id="rules-dialog" class="modal">
-    <div class="modal-heading"><h2>牌桌规则</h2><button id="close-rules" class="icon-button" aria-label="关闭规则">×</button></div>
-    <p>三人斗地主 · 54 张牌 · 无癞子</p>
+    <div class="modal-heading"><h2>Rules</h2><button id="close-rules" class="icon-button" aria-label="Close">×</button></div>
+    <p>3 players · 54 cards</p>
     <dl class="rules-list">
-      <dt>开局</dt><dd>三人准备后由房主开局。每人 17 张牌，地主额外获得 3 张底牌。</dd>
-      <dt>叫分</dt><dd>依次叫 1 / 2 / 3 分，必须高于已有叫分。3 分立即成为地主，无人叫分则重发。</dd>
-      <dt>牌型</dt><dd>单张、对子、三张、三带一、三带二、顺子、连对、飞机（可带单或对）、四带二、四带两对、炸弹、王炸。顺子和飞机主体不含 2 和王。</dd>
-      <dt>跟牌</dt><dd>相同牌型和张数才能比较大小；炸弹压普通牌，王炸最大。两人不出后重新领出。</dd>
-      <dt>带牌约定</dt><dd>四带二可带两张同点数牌；飞机单翅可用对子拆成两张，不可带三张或四张同点数牌，翅膀不与主体同点数。</dd>
-      <dt>积分</dt><dd>叫分为底分，每个炸弹或王炸翻倍，春天 / 反春天再翻倍。地主输赢为当前倍数 ×2，农民为当前倍数。仅娱乐积分。</dd>
-      <dt>超时 / 断线</dt><dd>叫分限时 20 秒，超时不叫；出牌限时 45 秒，超时跟牌不出，领出时自动出最小单张。刷新页面自动重连，离线座位保留 2 分钟。</dd>
+      <dt>Start</dt><dd>All ready, host starts. 17 cards each; solo takes 3 more.</dd>
+      <dt>Bid</dt><dd>Bid 1–3 or pass. Highest wins solo. All pass: redeal.</dd>
+      <dt>Types</dt><dd>Singles, pairs, triples, runs, planes and attachments. No 2 or jokers in runs.</dd>
+      <dt>Follow</dt><dd>Match type and length; play higher. Bombs beat normal plays. Rocket beats all. Two passes reset the lead.</dd>
+      <dt>Wings</dt><dd>Four + 2 may use a pair. Plane wings may use pairs as singles; no triples or quads.</dd>
+      <dt>Points</dt><dd>Bid sets base points. Bombs, rocket and sweeps double it. Solo scores ×2; teammates ×1.</dd>
+      <dt>Timeout</dt><dd>Bid: 20s. Play: 45s. Timeout: pass, or lowest single to lead. Rejoin within 2 min.</dd>
     </dl>
-    <div class="modal-note">局域网加入：朋友打开同一服务地址，输入六位房间号。房主关闭服务后，房间和积分会清空。</div>
+    <div class="modal-note">Share the LAN URL and code. Restarting the host clears all rooms.</div>
   </dialog>
 
   <dialog id="leave-dialog" class="modal compact-modal">
-    <div class="modal-heading"><h2>离开牌桌？</h2></div>
-    <p>对局进行中离开会取消本局，不计积分。</p>
-    <div class="modal-actions"><button id="cancel-leave" class="button secondary">继续玩</button><button id="confirm-leave" class="button primary">离开房间</button></div>
+    <div class="modal-heading"><h2>Leave?</h2></div>
+    <p>This round will be cancelled.</p>
+    <div class="modal-actions"><button id="cancel-leave" class="button secondary">Stay</button><button id="confirm-leave" class="button primary">Leave</button></div>
   </dialog>
 </body>
 </html>

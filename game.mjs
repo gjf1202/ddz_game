@@ -4,7 +4,7 @@ export const PLAYER_COUNT = 3;
 export const HAND_SIZE = 17;
 const MAX_SEQUENCE_RANK = 14;
 const SUITS = ['♠', '♥', '♣', '♦'];
-const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 15: '2', 16: '小王', 17: '大王' };
+const RANK_LABELS = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A', 15: '2', 16: 'SJ', 17: 'BJ' };
 
 export function makeDeck() {
   const cards = [];
@@ -55,25 +55,25 @@ export function analyzeCards(cards) {
   const counts = ranks.map(rank => groups.get(rank).length);
   const length = cards.length;
   const result = [];
-  if (length === 2 && ranks[0] === 16 && ranks[1] === 17) { return [pattern('rocket', 17, 2, '王炸')]; }
+  if (length === 2 && ranks[0] === 16 && ranks[1] === 17) { return [pattern('rocket', 17, 2, 'Rocket')]; }
   if (ranks.length === 1) {
-    const types = { 1: ['single', '单张'], 2: ['pair', '对子'], 3: ['triple', '三张'], 4: ['bomb', '炸弹'] };
+    const types = { 1: ['single', 'Single'], 2: ['pair', 'Pair'], 3: ['triple', 'Triple'], 4: ['bomb', 'Bomb'] };
     const entry = types[length];
     return entry ? [pattern(entry[0], ranks[0], length, entry[1])] : [];
   }
   const tripleRank = ranks.find(rank => groups.get(rank).length === 3);
-  if (length === 4 && tripleRank) { result.push(pattern('triple-single', tripleRank, length, '三带一')); }
-  if (length === 5 && tripleRank && counts.includes(2)) { result.push(pattern('triple-pair', tripleRank, length, '三带二')); }
+  if (length === 4 && tripleRank) { result.push(pattern('triple-single', tripleRank, length, 'Triple + 1')); }
+  if (length === 5 && tripleRank && counts.includes(2)) { result.push(pattern('triple-pair', tripleRank, length, 'Triple + pair')); }
   const fourRank = ranks.find(rank => groups.get(rank).length === 4);
-  if (length === 6 && fourRank) { result.push(pattern('four-single', fourRank, length, '四带二')); }
+  if (length === 6 && fourRank) { result.push(pattern('four-single', fourRank, length, 'Four + 2')); }
   if (length === 8 && fourRank && counts.filter(count => count === 2).length === 2) {
-    result.push(pattern('four-pair', fourRank, length, '四带两对'));
+    result.push(pattern('four-pair', fourRank, length, 'Four + pairs'));
   }
   if (length >= 5 && counts.every(count => count === 1) && consecutive(ranks)) {
-    result.push(pattern('straight', ranks.at(-1), length, '顺子'));
+    result.push(pattern('straight', ranks.at(-1), length, 'Run'));
   }
   if (length >= 6 && counts.every(count => count === 2) && consecutive(ranks)) {
-    result.push(pattern('pair-straight', ranks.at(-1), length, '连对'));
+    result.push(pattern('pair-straight', ranks.at(-1), length, 'Pairs'));
   }
   const tripleRanks = ranks.filter(rank => rank <= MAX_SEQUENCE_RANK && groups.get(rank).length === 3);
   for (let start = 0; start < tripleRanks.length; start++) {
@@ -82,12 +82,12 @@ export function analyzeCards(cards) {
       if (!consecutive(main)) { continue; }
       const wings = ranks.filter(rank => !main.includes(rank));
       const tripleCount = main.length;
-      if (length === tripleCount * 3) { result.push(pattern('airplane', main.at(-1), length, '飞机')); }
+      if (length === tripleCount * 3) { result.push(pattern('airplane', main.at(-1), length, 'Plane')); }
       if (length === tripleCount * 4 && wings.every(rank => groups.get(rank).length <= 2)) {
-        result.push(pattern('airplane-single', main.at(-1), length, '飞机带单张'));
+        result.push(pattern('airplane-single', main.at(-1), length, 'Plane + singles'));
       }
       if (length === tripleCount * 5 && wings.length === tripleCount && wings.every(rank => groups.get(rank).length === 2)) {
-        result.push(pattern('airplane-pair', main.at(-1), length, '飞机带对子'));
+        result.push(pattern('airplane-pair', main.at(-1), length, 'Plane + pairs'));
       }
     }
   }

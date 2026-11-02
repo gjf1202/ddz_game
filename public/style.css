@@ -189,7 +189,19 @@ input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #82a9f414; }
 .revealed-hand .card.mini .suit { font-size: 10px; }
 .hand-empty { display: flex; align-items: center; gap: 13px; font-size: 12px; color: #696f7b; }
 .hand-empty > span { font-size: 30px; color: #454b55; }
-.hand-footer { display: flex; justify-content: space-between; color: #747c89; font-size: 10px; padding: 9px 0 17px; }
+.hand-footer { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; justify-content: space-between; color: #747c89; font-size: 10px; padding: 9px 0 17px; }
+.hand-feedback { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hand-feedback .text-button { font-size: 11px; }
+#sound-status { color: #979fab; max-width: 300px; }
+.card-counter { margin: 0 0 16px; padding: 0 16px; border: 1px solid #393d45; border-radius: 8px; background: #24262a; }
+.card-counter summary { padding: 10px 0; cursor: pointer; font-size: 12px; color: #b9c6dc; }
+.card-counter summary span { margin-left: 10px; color: #8b94a2; font-size: 10px; }
+.counter-grid { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: 6px; padding: 2px 0; }
+.counter-item { display: flex; flex-direction: column; align-items: center; border: 1px solid #424954; background: #2b2f36; border-radius: 4px; padding: 6px 0; }
+.counter-rank { color: #aab7cc; font: 12px/1.5 Consolas, var(--font); }
+.counter-count { color: #e0e4eb; font: 19px/1.5 Consolas, monospace; }
+.counter-item.empty { opacity: .38; }
+.card-counter p { margin: 8px 0 12px; font-size: 10px; color: #8b94a2; }
 .hand-footer > span:last-child { font: 9px/1.6 Consolas, var(--font); color: #666d79; }
 .footer-divider { margin: 0 9px; }
 .activity { border-top: 1px solid #34373d; margin-top: 7px; font-size: 11px; }
@@ -261,6 +273,9 @@ input:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #82a9f414; }
   .hand .card.joker .rank { font-size: 10px; }
   .hand:has(.hand-empty) { justify-content: center; }
   .hand-footer > span:last-child { display: none; }
+  .hand-feedback { width: 100%; gap: 10px; }
+  .counter-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
+  .card-counter { padding: 0 11px; }
   .self-info { gap: 7px; font-size: 11px; } .score-text { font-size: 10px; }
   .self-name { max-width: 100px; } .selection-label { font-size: 10px; }
   .action-bar { min-height: 62px; gap: 7px; flex-wrap: wrap; }

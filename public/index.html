@@ -85,8 +85,13 @@
       <div class="hand-toolbar"><div id="self-info" class="self-info"></div><span id="selection-label" class="selection-label">等待发牌</span></div>
       <div id="action-bar" class="action-bar"></div>
       <div id="hand" class="hand"></div>
-      <div class="hand-footer"><span id="hand-help">点击牌面选择，再点击出牌</span><span>ENTER 出牌 <span class="footer-divider">/</span> ESC 取消选择</span></div>
+      <div class="hand-footer"><span id="hand-help">点击牌面选择，再点击出牌</span><div class="hand-feedback"><button id="sound-test" class="text-button" type="button">试听音效</button><span id="sound-status" role="status">点击试听检查声音</span></div><span>ENTER 出牌 <span class="footer-divider">/</span> ESC 取消选择</span></div>
     </section>
+    <details id="card-counter" class="card-counter" hidden open>
+      <summary>记牌器 <span id="counter-total"></span></summary>
+      <div id="counter-grid" class="counter-grid" role="list" aria-label="其他两家剩余牌数"></div>
+      <p id="counter-note">显示其他两家尚未打出的牌数，已扣除你的手牌和全桌已出牌。</p>
+    </details>
     <details class="activity"><summary>对局记录 <span>GAME LOG</span></summary><ol id="game-log"></ol></details>
   </main>
 

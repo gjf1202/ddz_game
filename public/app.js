@@ -3,6 +3,8 @@ const SESSION_KEY = 'darcuo-session';
 const NAME_KEY = 'darcuo-name';
 const SOUND_KEY = 'darcuo-sound';
 const NOTIFICATION_KEY = 'darcuo-notifications';
+const COUNTER_KEY = 'darcuo-counter-open';
+const AUDIO_RESUME_TIMEOUT_MS = 1800;
 const selected = new Set();
 let state = null;
 let sessionToken = null;
@@ -17,6 +19,7 @@ let connected = false;
 let soundEnabled = storageGet(SOUND_KEY) !== 'false';
 let notificationsEnabled = storageGet(NOTIFICATION_KEY) === 'true';
 let audioContext = null;
+let audioIssue = '';
 let titleTimer = null;
 let titleFlashing = false;
 const originalTitle = document.title;
@@ -46,17 +49,30 @@ function connectionStatus(online, text) {
   byId('connection-dot').classList.toggle('offline', !online);
   byId('connection-label').textContent = text;
 }
-function initializeAudio() {
-  if (!soundEnabled) { return; }
-  if (!audioContext) {
+async function initializeAudio() {
+  if (!soundEnabled) { return false; }
+  if (!audioContext || audioContext.state === 'closed') {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) { return; }
+    if (!AudioContextClass) { audioIssue = '当前浏览器不支持音效，请尝试 Chrome 或 Edge。'; return false; }
     try { audioContext = new AudioContextClass(); }
-    catch (error) { console.warn('Audio output unavailable:', error.name); return; }
+    catch (error) { console.warn('Audio output unavailable:', error.name); audioIssue = '音频设备暂时不可用，请检查输出设备后重试。'; return false; }
   }
-  if (audioContext.state === 'suspended') { void audioContext.resume().catch(() => {}); }
+  let resumeTimer;
+  try {
+    if (audioContext.state !== 'running') {
+      await Promise.race([
+        audioContext.resume(),
+        new Promise((resolve, reject) => { resumeTimer = setTimeout(() => reject(new Error('Audio resume timed out')), AUDIO_RESUME_TIMEOUT_MS); })
+      ]);
+    }
+    audioIssue = audioContext.state === 'running' ? '' : '声音尚未启用，请点击试听并允许网站播放声音。';
+  } catch (error) {
+    console.warn('Audio resume unavailable:', error.name);
+    audioIssue = '浏览器尚未允许播放声音，请检查网站声音设置后再试听。';
+  } finally { clearTimeout(resumeTimer); }
+  return soundEnabled && audioContext.state === 'running';
 }
-function tone(frequency, start, duration, volume = 0.07, type = 'sine') {
+function tone(frequency, start, duration, volume = 0.16, type = 'sine') {
   if (!soundEnabled || !audioContext || audioContext.state !== 'running') { return; }
   const oscillator = audioContext.createOscillator();
   const gain = audioContext.createGain();
@@ -68,22 +84,24 @@ function tone(frequency, start, duration, volume = 0.07, type = 'sine') {
   gain.gain.exponentialRampToValueAtTime(0.001, onset + duration);
   oscillator.connect(gain);
   gain.connect(audioContext.destination);
+  oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
   oscillator.start(onset);
   oscillator.stop(onset + duration + 0.015);
 }
-function playSound(name) {
-  if (!soundEnabled) { return; }
-  initializeAudio();
+async function playSound(name) {
+  if (!await initializeAudio()) { return false; }
   const cues = {
-    card: [[520, 0, 0.09]],
-    pass: [[310, 0, 0.12]],
-    bid: [[430, 0, 0.12], [610, 0.1, 0.16]],
-    bomb: [[330, 0, 0.12, 0.05, 'triangle'], [500, 0.09, 0.12, 0.05, 'triangle'], [760, 0.18, 0.22, 0.06, 'triangle']],
-    turn: [[660, 0, 0.14], [880, 0.15, 0.22]]
+    card: [[520, 0, 0.16]],
+    pass: [[310, 0, 0.18]],
+    bid: [[430, 0, 0.17], [610, 0.15, 0.22]],
+    bomb: [[330, 0, 0.16, 0.12, 'triangle'], [500, 0.13, 0.16, 0.12, 'triangle'], [760, 0.26, 0.28, 0.14, 'triangle']],
+    turn: [[660, 0, 0.2], [880, 0.22, 0.28]],
+    test: [[440, 0, 0.24], [660, 0.26, 0.24], [880, 0.52, 0.32]]
   };
   for (const [frequency, start, duration, volume, type] of cues[name] || []) {
     tone(frequency, start, duration, volume, type);
   }
+  return true;
 }
 function updatePreferenceButton(id, label, enabled) {
   const button = byId(id);
@@ -221,14 +239,14 @@ function applyState(next) {
     const seenEvents = new Set(previous.log.map(entry => entry.id));
     const freshEvents = state.log.filter(entry => !seenEvents.has(entry.id));
     const latestMessage = freshEvents.reverse().find(entry => /出了|不出$|叫 [123] 分/.test(entry.message))?.message || '';
-    if (/出了(?:炸弹|王炸)/.test(latestMessage)) { playSound('bomb'); }
-    else if (/出了/.test(latestMessage)) { playSound('card'); }
-    else if (/不出$/.test(latestMessage)) { playSound('pass'); }
-    else if (/叫 [123] 分/.test(latestMessage)) { playSound('bid'); }
+    if (/出了(?:炸弹|王炸)/.test(latestMessage)) { void playSound('bomb'); }
+    else if (/出了/.test(latestMessage)) { void playSound('card'); }
+    else if (/不出$/.test(latestMessage)) { void playSound('pass'); }
+    else if (/叫 [123] 分/.test(latestMessage)) { void playSound('bid'); }
   }
   if (previous && previous.code === state.code && previous.you === state.you && state.turn === state.you &&
     (previous.turn !== state.you || previous.phase !== state.phase || previous.round !== state.round) && ['playing', 'bidding'].includes(state.phase)) {
-    playSound('turn');
+    void playSound('turn');
     notifyTurn();
   }
   if (state.turn !== state.you || !['playing', 'bidding'].includes(state.phase)) { clearTitleFlash(); }
@@ -246,6 +264,7 @@ function applyState(next) {
   renderBoard();
   renderPlayers();
   renderHand();
+  renderCounter();
   renderActions();
   renderLog();
   updateClock();
@@ -375,6 +394,35 @@ function updateSelection() {
   const button = byId('play-button');
   if (button) { button.disabled = busy || !connected || selected.size === 0; }
 }
+function renderCounter() {
+  const panel = byId('card-counter');
+  panel.hidden = !['playing', 'finished'].includes(state.phase);
+  if (panel.hidden) { return; }
+  const grid = byId('counter-grid');
+  grid.replaceChildren();
+  if (!Array.isArray(state.playedCards)) {
+    byId('counter-total').textContent = '等待服务更新';
+    byId('counter-note').textContent = '请在本局结束后重启主机服务，以启用记牌器。';
+    return;
+  }
+  const ranks = Array.from({ length: 15 }, (value, index) => 17 - index);
+  const remaining = new Map(ranks.map(rank => [rank, rank >= 16 ? 1 : 4]));
+  for (const card of [...state.hand, ...state.playedCards]) { remaining.set(card.rank, remaining.get(card.rank) - 1); }
+  const labels = { 17: '大王', 16: '小王', 15: '2', 14: 'A', 13: 'K', 12: 'Q', 11: 'J' };
+  let total = 0;
+  for (const rank of ranks) {
+    const count = remaining.get(rank);
+    total += count;
+    const item = element('div', `counter-item${count === 0 ? ' empty' : ''}`);
+    item.dataset.rank = rank;
+    item.setAttribute('role', 'listitem');
+    item.setAttribute('aria-label', `${labels[rank] || rank} 剩余 ${count} 张`);
+    item.append(element('span', 'counter-rank', labels[rank] || String(rank)), element('span', 'counter-count', String(count)));
+    grid.append(item);
+  }
+  byId('counter-total').textContent = `其他两家合计 ${total} 张`;
+  byId('counter-note').textContent = '已扣除你的手牌和全桌已出牌；只统计总数，不区分两家的持牌分布。';
+}
 function actionButton(text, className, action, disabled = false, id = '') {
   const button = element('button', `button ${className}`, text);
   button.type = 'button';
@@ -471,16 +519,36 @@ async function copyInvite() {
 
 byId('nickname').value = storageGet(NAME_KEY) || '';
 updatePreferenceButtons();
-document.addEventListener('pointerdown', initializeAudio);
-document.addEventListener('keydown', initializeAudio);
+document.addEventListener('pointerdown', () => { void initializeAudio(); });
+document.addEventListener('keydown', () => { void initializeAudio(); });
 byId('sound-toggle').addEventListener('click', () => {
   soundEnabled = !soundEnabled;
   storageSet(SOUND_KEY, String(soundEnabled));
   updatePreferenceButtons();
-  if (soundEnabled) { initializeAudio(); playSound('turn'); }
+  if (soundEnabled) { void playSound('turn'); }
   else if (audioContext) { void audioContext.suspend().catch(() => {}); }
+  byId('sound-status').textContent = soundEnabled ? '点击试听检查声音' : '音效已关闭';
   toast(`音效已${soundEnabled ? '开启' : '关闭'}。`);
 });
+byId('sound-test').addEventListener('click', () => {
+  void (async () => {
+    const button = byId('sound-test');
+    button.disabled = true;
+    soundEnabled = true;
+    storageSet(SOUND_KEY, 'true');
+    updatePreferenceButtons();
+    byId('sound-status').textContent = '正在启用声音…';
+    try {
+      const played = await playSound('test');
+      byId('sound-status').textContent = played ? '试听已播放；听不到请检查标签页静音和系统音量。' : audioIssue;
+    } catch (error) {
+      console.warn('Sound test failed:', error.name);
+      byId('sound-status').textContent = '试听失败，请检查网站声音权限和音频设备。';
+    } finally { button.disabled = false; }
+  })();
+});
+byId('card-counter').open = storageGet(COUNTER_KEY) !== 'false';
+byId('card-counter').addEventListener('toggle', () => { storageSet(COUNTER_KEY, String(byId('card-counter').open)); });
 byId('notification-toggle').addEventListener('click', () => {
   notificationsEnabled = !notificationsEnabled;
   storageSet(NOTIFICATION_KEY, String(notificationsEnabled));

@@ -39,7 +39,7 @@ function view(room, player) {
     host: room.host, turn: room.turn, deadline: room.deadline, serverTime: Date.now(),
     landlord: room.landlord, bid: room.bid, multiplier: room.multiplier, round: room.round,
     bottom: room.landlord === null ? [] : room.bottom,
-    hand: sortCards(player.hand), lastPlay: room.lastPlay, table: room.table,
+    hand: sortCards(player.hand), lastPlay: room.lastPlay, table: room.table, playedCards: room.playedCards,
     winner: room.winner, result: room.result, log: room.log,
     canBeat: room.phase === 'playing' && room.turn === player.seat ? legalMoves(player.hand, target).length > 0 : false,
     players: room.players.map(entry => entry ? {
@@ -70,7 +70,7 @@ function makeRoom(name, practice) {
   do { code = String(randomInt(100000, 1000000)); } while (rooms.has(code));
   const room = {
     code, practice, host: 0, players: [newPlayer(name, 0), null, null],
-    phase: 'waiting', turn: null, landlord: null, bottom: [], lastPlay: null,
+    phase: 'waiting', turn: null, landlord: null, bottom: [], lastPlay: null, playedCards: [],
     table: [null, null, null], bid: 0, bidder: null, bidCount: 0, multiplier: 1,
     passes: 0, round: 0, log: [], winner: null, result: null, updatedAt: Date.now(), deadline: 0
   };
@@ -96,6 +96,7 @@ function startRound(room) {
   room.bottom = deck.slice(HAND_SIZE * PLAYER_COUNT);
   room.bid = 0; room.bidder = null; room.bidCount = 0; room.multiplier = 1;
   room.lastPlay = null; room.passes = 0; room.table = [null, null, null];
+  room.playedCards = [];
   room.winner = null; room.result = null;
   room.players.forEach((player, index) => {
     player.hand = sortCards(deck.slice(index * HAND_SIZE, (index + 1) * HAND_SIZE));
@@ -152,6 +153,7 @@ function play(room, player, ids) {
   const resolved = resolvePlay(selected, target);
   if (!resolved) { fail(target ? '牌型不合法，或没有大过上一手。' : '这些牌不能组成有效牌型。'); }
   player.hand = player.hand.filter(card => !ids.includes(card.id));
+  room.playedCards.push(...selected);
   player.playCount++;
   room.lastPlay = { seat: player.seat, cards: sortCards(selected), pattern: resolved };
   room.table[player.seat] = { cards: sortCards(selected), text: resolved.name };
@@ -205,7 +207,7 @@ function deleteRoom(room) {
 function removePlayer(room, player) {
   if (room.phase === 'playing' || room.phase === 'bidding') {
     room.phase = 'waiting'; room.deadline = 0; room.botAt = 0;
-    room.landlord = null; room.bottom = []; room.lastPlay = null; room.table = [null, null, null];
+    room.landlord = null; room.bottom = []; room.lastPlay = null; room.table = [null, null, null]; room.playedCards = [];
     room.result = null; room.winner = null; room.turn = null; room.bid = 0; room.multiplier = 1;
     for (const entry of room.players.filter(Boolean)) { entry.hand = []; entry.ready = entry.bot; entry.bid = null; }
     log(room, '有玩家离开，本局取消，不计积分');
